@@ -10,38 +10,6 @@ The long‑term goal is to explore **new interaction paradigms and motion‑driv
 
 ---
 
-# Suggested Repository Names
-
-You may choose one of the following depending on positioning:
-
-**Research‑oriented**
-
-* aura-interaction-lab
-* gesture-aura-lab
-* motion-visual-systems
-* gesture-visual-computing
-
-**More experimental / creative**
-
-* aura-engine
-* motionglyph
-* gestura
-* aura-dynamics
-
-Recommended choice:
-
-```
-aura-interaction-lab
-```
-
-It clearly communicates:
-
-* gesture interaction
-* research direction
-* experimental lab environment
-
----
-
 # Research Motivation
 
 Human gestures contain rich spatial and temporal information:

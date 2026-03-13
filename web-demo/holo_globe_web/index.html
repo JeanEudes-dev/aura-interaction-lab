@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Holo Globe Web</title>
+    <script type="module" src="/src/main.ts"></script>
+  </head>
+  <body>
+    <div id="app">
+      <div id="presence-shell">
+        <video id="camera-feed" autoplay playsinline muted></video>
+        <div id="presence-wash"></div>
+      </div>
+
+      <div id="scene-shell">
+        <div id="cesium-root"></div>
+        <div id="globe-vignette"></div>
+      </div>
+
+      <div id="hud">
+        <header class="hud-header">
+          <div class="eyebrow">Aura Interaction Lab</div>
+          <h1>Holographic Earth Interface</h1>
+          <p>Three-finger pinch to rotate. Index plus thumb to focus. Middle plus thumb to lock. Fist to reset.</p>
+        </header>
+
+        <div id="gesture-panel" class="glass-panel">
+          <div class="panel-label">Gesture State</div>
+          <div class="meter-group">
+            <div class="meter-row">
+              <span>Rotate</span>
+              <div class="meter"><div id="orbit-meter" class="meter-fill"></div></div>
+            </div>
+            <div class="meter-row">
+              <span>Select</span>
+              <div class="meter"><div id="select-meter" class="meter-fill accent"></div></div>
+            </div>
+            <div class="meter-row">
+              <span>Lock</span>
+              <div class="meter"><div id="dismiss-meter" class="meter-fill warn"></div></div>
+            </div>
+            <div class="meter-row">
+              <span>Reset</span>
+              <div class="meter"><div id="reset-meter" class="meter-fill"></div></div>
+            </div>
+          </div>
+          <div id="gesture-text" class="panel-footnote">Initializing camera and hand tracker…</div>
+        </div>
+
+        <div id="place-card" class="glass-panel hidden">
+          <div class="panel-label">Location Lock</div>
+          <h2 id="place-title"></h2>
+          <div id="place-region" class="place-region"></div>
+          <div id="place-coords" class="place-coords"></div>
+          <p id="place-description" class="place-description"></p>
+          <div class="metrics">
+            <div class="metric">
+              <span>Signal</span>
+              <strong id="place-signal"></strong>
+            </div>
+            <div class="metric">
+              <span>Coverage</span>
+              <strong id="place-coverage"></strong>
+            </div>
+            <div class="metric">
+              <span>Stability</span>
+              <strong id="place-stability"></strong>
+            </div>
+          </div>
+        </div>
+
+        <div id="reticle" class="hidden">
+          <div class="reticle-ring outer"></div>
+          <div class="reticle-ring inner"></div>
+          <div class="reticle-cross x"></div>
+          <div class="reticle-cross y"></div>
+        </div>
+
+        <div class="status-strip">
+          <span id="tracking-pill" class="pill">Tracking offline</span>
+          <span class="status-copy">Fullscreen Cesium globe + hand-driven spatial UI</span>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

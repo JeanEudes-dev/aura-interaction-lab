@@ -88,6 +88,11 @@ from config import (
     PORTRAIT_FADE_WIDTH,
     PORTRAIT_TINT,
     WARNING_COLOR,
+    WELCOME_FADE_SECONDS,
+    WELCOME_HOLD_SECONDS,
+    WELCOME_LINE_PAUSE,
+    WELCOME_LINES,
+    WELCOME_TYPE_SPEED,
     WINDOW_TITLE,
     WRIST_ID,
     ZOOM_DEADZONE,
@@ -485,31 +490,21 @@ class HoloGlobe:
 
     def draw_background(self, canvas: np.ndarray, t: float):
         h, w = canvas.shape[:2]
-        yy, xx = np.indices((h, w))
-        cx = self.center[0] / w
-        cy = self.center[1] / h
-        dx = xx / w - cx
-        dy = yy / h - cy
-        radial = np.clip(1.0 - np.sqrt(dx * dx + dy * dy) * 1.6, 0.0, 1.0)
-        base = np.zeros_like(canvas)
-        base[..., 0] = (10 + radial * 18).astype(np.uint8)
-        base[..., 1] = (14 + radial * 28).astype(np.uint8)
-        base[..., 2] = (18 + radial * 48).astype(np.uint8)
-        canvas[:] = cv2.addWeighted(canvas, 0.20, base, 0.80, 0)
+        canvas[:] = 0
 
         for x in range(0, self.width, BACKGROUND_GRID_STEP):
-            alpha = 0.13 if x % (BACKGROUND_GRID_STEP * 4) == 0 else 0.05
+            alpha = 0.10 if x % (BACKGROUND_GRID_STEP * 4) == 0 else 0.03
             col = tuple(int(c * alpha) for c in HUD_COLOR)
             cv2.line(canvas, (x, 0), (x, self.height), col, 1, cv2.LINE_AA)
         for y in range(0, self.height, BACKGROUND_GRID_STEP):
-            alpha = 0.13 if y % (BACKGROUND_GRID_STEP * 4) == 0 else 0.05
+            alpha = 0.10 if y % (BACKGROUND_GRID_STEP * 4) == 0 else 0.03
             col = tuple(int(c * alpha) for c in HUD_COLOR)
             cv2.line(canvas, (0, y), (self.width, y), col, 1, cv2.LINE_AA)
 
         for x, y, size, alpha in self.star_field:
             pulse = 0.6 + 0.4 * math.sin(t * 0.8 + (x * 0.01) + (y * 0.02))
-            col = tuple(int(c * alpha * pulse * 0.45) for c in TEXT_ACCENT)
-            cv2.circle(canvas, (x, y), int(size), col, -1, cv2.LINE_AA)
+            col = tuple(int(c * alpha * pulse * 0.35) for c in TEXT_ACCENT)
+            cv2.circle(canvas, (x, y), max(1, int(size)), col, -1, cv2.LINE_AA)
 
         scan_y = int(((math.sin(t * SCANLINE_SPEED) * 0.5) + 0.5) * self.height)
         cv2.line(canvas, (0, scan_y), (self.width, scan_y), (24, 42, 62), 2, cv2.LINE_AA)
@@ -602,10 +597,10 @@ class HoloGlobe:
             cv2.circle(overlay, (px, py), 3, TEXT_ACCENT, -1, cv2.LINE_AA)
 
         title = "AURA / HOLOGRAPHIC EARTH"
-        subtitle = "OPEN HAND ORBIT / INDEX+THUMB PINCH SELECT / MIDDLE+THUMB PINCH DISMISS"
+        subtitle = "GESTURE INTERFACE ACTIVE"
         (tw, _), _ = cv2.getTextSize(title, cv2.FONT_HERSHEY_SIMPLEX, 0.62, 1)
         (sw, _), _ = cv2.getTextSize(subtitle, cv2.FONT_HERSHEY_SIMPLEX, 0.44, 1)
-        cv2.putText(overlay, title, (cx - tw // 2, 42), cv2.FONT_HERSHEY_SIMPLEX, 0.62, TEXT_PRIMARY, 1, cv2.LINE_AA)
+        cv2.putText(overlay, title, (cx - tw // 2, 42), cv2.FONT_HERSHEY_SIMPLEX, 0.62, TEXT_ACCENT, 1, cv2.LINE_AA)
         cv2.putText(overlay, subtitle, (cx - sw // 2, 66), cv2.FONT_HERSHEY_SIMPLEX, 0.44, TEXT_SECONDARY, 1, cv2.LINE_AA)
 
     def draw_data_arcs(self, overlay: np.ndarray, t: float):
@@ -823,6 +818,93 @@ def apply_glow(frame: np.ndarray, overlay: np.ndarray) -> np.ndarray:
     return cv2.add(blended, overlay // 2)
 
 
+def run_welcome_screen(window_title: str, width: int, height: int) -> bool:
+    """Typing animation welcome on black. Returns False if user pressed 'q'."""
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    cursor_char = "_"
+    t_start = time.time()
+
+    # Pre-compute full text timing
+    line_starts: list[float] = []
+    cursor_time = 0.0
+    for line in WELCOME_LINES:
+        line_starts.append(cursor_time)
+        cursor_time += len(line) * WELCOME_TYPE_SPEED + WELCOME_LINE_PAUSE
+
+    total_type_time = cursor_time
+    total_duration = total_type_time + WELCOME_HOLD_SECONDS + WELCOME_FADE_SECONDS
+
+    while True:
+        elapsed = time.time() - t_start
+        if elapsed >= total_duration:
+            return True
+
+        canvas = np.zeros((height, width, 3), dtype=np.uint8)
+
+        # Determine fade alpha (1.0 during typing/hold, fades to 0.0)
+        fade_start = total_type_time + WELCOME_HOLD_SECONDS
+        if elapsed >= fade_start:
+            alpha = 1.0 - clamp((elapsed - fade_start) / WELCOME_FADE_SECONDS, 0.0, 1.0)
+        else:
+            alpha = 1.0
+
+        # Draw each line with typing effect
+        y_base = height // 2 - len(WELCOME_LINES) * 18
+        for i, line in enumerate(WELCOME_LINES):
+            line_elapsed = elapsed - line_starts[i]
+            if line_elapsed < 0:
+                break
+
+            chars_visible = int(line_elapsed / WELCOME_TYPE_SPEED) if WELCOME_TYPE_SPEED > 0 else len(line)
+            chars_visible = min(chars_visible, len(line))
+            visible = line[:chars_visible]
+
+            y = y_base + i * 36
+            if not line:
+                continue
+
+            # Title lines (first two) are larger and cyan
+            if i == 0:
+                scale, thickness, color = 0.9, 2, TEXT_ACCENT
+            elif i == 1:
+                scale, thickness, color = 0.6, 1, HUD_COLOR
+            elif line.startswith(">"):
+                scale, thickness, color = 0.52, 1, TEXT_SECONDARY
+            elif "ONLINE" in line:
+                scale, thickness, color = 0.7, 2, (0, 255, 100)
+            else:
+                scale, thickness, color = 0.52, 1, TEXT_PRIMARY
+
+            color = tuple(int(c * alpha) for c in color)
+
+            # Blinking cursor at end of current typing line
+            show_cursor = chars_visible < len(line) and int(elapsed * 6) % 2 == 0
+            display = visible + (cursor_char if show_cursor else "")
+
+            (tw, _), _ = cv2.getTextSize(display, font, scale, thickness)
+            x = (width - tw) // 2
+            cv2.putText(canvas, display, (x, y), font, scale, color, thickness, cv2.LINE_AA)
+
+        # Subtle scanline effect
+        scan_y = int((elapsed * 120) % height)
+        cv2.line(canvas, (0, scan_y), (width, scan_y),
+                 tuple(int(c * 0.15 * alpha) for c in TEXT_ACCENT), 1)
+
+        # Corner brackets
+        bracket_len = 40
+        bracket_color = tuple(int(c * 0.4 * alpha) for c in TEXT_ACCENT)
+        for (bx, by, dx, dy) in [
+            (30, 30, 1, 1), (width - 30, 30, -1, 1),
+            (30, height - 30, 1, -1), (width - 30, height - 30, -1, -1),
+        ]:
+            cv2.line(canvas, (bx, by), (bx + dx * bracket_len, by), bracket_color, 1, cv2.LINE_AA)
+            cv2.line(canvas, (bx, by), (bx, by + dy * bracket_len), bracket_color, 1, cv2.LINE_AA)
+
+        cv2.imshow(window_title, canvas)
+        if cv2.waitKey(16) & 0xFF == ord("q"):
+            return False
+
+
 def main():
     parser = argparse.ArgumentParser(description="Holographic globe interaction")
     parser.add_argument("--camera", type=int, default=0)
@@ -838,25 +920,54 @@ def main():
         print(os.path.abspath(os.path.join(here, "..", "aura_effects", "models", "hand_landmarker.task")))
         return
 
-    cap = cv2.VideoCapture(args.camera)
+    cap = cv2.VideoCapture(args.camera, cv2.CAP_DSHOW)
+    if not cap.isOpened():
+        cap = cv2.VideoCapture(args.camera)
     if not cap.isOpened():
         print(f"Error: cannot open camera {args.camera}")
         return
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, FRAME_WIDTH)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, FRAME_HEIGHT)
 
-    options = HandLandmarkerOptions(
-        base_options=BaseOptions(model_asset_path=model_path),
-        running_mode=RunningMode.VIDEO,
-        num_hands=MAX_HANDS,
-        min_hand_detection_confidence=MIN_DETECTION_CONFIDENCE,
-        min_tracking_confidence=MIN_TRACKING_CONFIDENCE,
-    )
-    hands = HandLandmarker.create_from_options(options)
+    def _make_options(delegate):
+        return HandLandmarkerOptions(
+            base_options=BaseOptions(
+                model_asset_path=model_path,
+                delegate=delegate,
+            ),
+            running_mode=RunningMode.VIDEO,
+            num_hands=MAX_HANDS,
+            min_hand_detection_confidence=MIN_DETECTION_CONFIDENCE,
+            min_tracking_confidence=MIN_TRACKING_CONFIDENCE,
+        )
+
+    try:
+        hands = HandLandmarker.create_from_options(
+            _make_options(BaseOptions.Delegate.GPU)
+        )
+        print("Hand landmarker using GPU delegate.")
+    except (NotImplementedError, RuntimeError):
+        hands = HandLandmarker.create_from_options(
+            _make_options(BaseOptions.Delegate.CPU)
+        )
+        print("GPU delegate unavailable — falling back to CPU.")
     selfie = create_selfie_segmenter()
     globe = None
     cv2.namedWindow(WINDOW_TITLE, cv2.WINDOW_NORMAL)
     cv2.setWindowProperty(WINDOW_TITLE, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+
+    # Read one frame to get actual resolution for welcome screen
+    ok_init, frame_init = cap.read()
+    if ok_init:
+        frame_init = cv2.flip(frame_init, 1)
+        init_h, init_w = frame_init.shape[:2]
+    else:
+        init_w, init_h = FRAME_WIDTH, FRAME_HEIGHT
+
+    if not run_welcome_screen(WINDOW_TITLE, init_w, init_h):
+        cap.release()
+        cv2.destroyAllWindows()
+        return
 
     t0 = time.time()
     prev_t = t0
@@ -880,7 +991,7 @@ def main():
         dt = min(now_abs - prev_t, 0.05)
         prev_t = now_abs
 
-        base = (frame.astype(np.float32) * DARKEN_FACTOR).astype(np.uint8)
+        base = np.zeros_like(frame)
         canvas = base.copy()
         overlay = np.zeros_like(frame)
 

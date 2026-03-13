@@ -54,36 +54,54 @@ SECONDARY_PINCH_THRESHOLD = 0.82
 SECONDARY_PINCH_RELEASE = 0.32
 
 # Visuals
-DARKEN_FACTOR = 0.16
+DARKEN_FACTOR = 0.0
 GLOW_KERNEL_SIZE = (41, 41)
-GLOW_BLEND_ALPHA = 0.92
+GLOW_BLEND_ALPHA = 1.05
 BACKGROUND_GRID_STEP = 36
-BACKGROUND_STAR_COUNT = 120
+BACKGROUND_STAR_COUNT = 160
 HUD_RING_SPEED = 0.52
 HUD_RING_COUNT = 6
 GLOBE_LAT_STEPS = 11
 GLOBE_LON_STEPS = 22
 GLOBE_SEGMENTS = 144
-ATMOSPHERE_LAYERS = 8
+ATMOSPHERE_LAYERS = 10
 SCANLINE_SPEED = 0.52
 DATA_ARC_POINT_COUNT = 72
 DATA_ARC_LIFT = 0.34
 
-GLOBE_CORE_COLOR = (255, 245, 180)
-GLOBE_LINE_COLOR = (255, 190, 70)
-GLOBE_BACK_LINE_COLOR = (90, 70, 30)
-HUD_COLOR = (255, 220, 120)
-PANEL_COLOR = (18, 28, 40)
-PANEL_ACCENT = (34, 60, 78)
-TEXT_PRIMARY = (255, 244, 220)
-TEXT_SECONDARY = (185, 198, 214)
-TEXT_ACCENT = (120, 235, 255)
-CURSOR_COLOR = (130, 245, 255)
-WARNING_COLOR = (90, 160, 255)
-PORTRAIT_TINT = (34, 72, 120)
-PORTRAIT_ALPHA = 0.88
+# Futuristic neon palette
+GLOBE_CORE_COLOR = (0, 255, 255)
+GLOBE_LINE_COLOR = (0, 220, 220)
+GLOBE_BACK_LINE_COLOR = (0, 50, 60)
+HUD_COLOR = (0, 255, 200)
+PANEL_COLOR = (5, 5, 12)
+PANEL_ACCENT = (10, 18, 30)
+TEXT_PRIMARY = (220, 240, 255)
+TEXT_SECONDARY = (100, 160, 200)
+TEXT_ACCENT = (0, 255, 255)
+CURSOR_COLOR = (0, 255, 220)
+WARNING_COLOR = (255, 0, 180)
+PORTRAIT_TINT = (0, 30, 50)
+PORTRAIT_ALPHA = 0.70
 PORTRAIT_FADE_WIDTH = 0.52
 DETAIL_CARD_SIZE = (360, 286)
+
+# Welcome screen
+WELCOME_LINES = [
+    "AURA INTERACTION LAB",
+    "HOLOGRAPHIC EARTH v2.6",
+    "",
+    "> INITIALIZING SATELLITE UPLINK...",
+    "> LOADING NEURAL HAND TRACKER...",
+    "> CALIBRATING GESTURE ENGINE...",
+    "> SYNCING GLOBAL TELEMETRY NODES...",
+    "",
+    "SYSTEM ONLINE.",
+]
+WELCOME_TYPE_SPEED = 0.030
+WELCOME_LINE_PAUSE = 0.22
+WELCOME_HOLD_SECONDS = 1.2
+WELCOME_FADE_SECONDS = 0.8
 
 LOCATION_PINS = [
     {
@@ -91,7 +109,7 @@ LOCATION_PINS = [
         "region": "Romania",
         "lat": 44.4268,
         "lon": 26.1025,
-        "color": (255, 210, 120),
+        "color": (0, 255, 200),
         "detail": (
             "Command hub with dense sensor coverage, urban energy patterns, "
             "and real-time public space telemetry."
@@ -102,7 +120,7 @@ LOCATION_PINS = [
         "region": "Iceland",
         "lat": 64.1466,
         "lon": -21.9426,
-        "color": (255, 170, 90),
+        "color": (80, 200, 255),
         "detail": (
             "High-latitude node suited for aurora-linked visual overlays, "
             "volcanic terrain mapping, and extreme atmosphere studies."
@@ -113,7 +131,7 @@ LOCATION_PINS = [
         "region": "Japan",
         "lat": 35.6764,
         "lon": 139.6500,
-        "color": (255, 120, 120),
+        "color": (255, 0, 200),
         "detail": (
             "Megacity interaction target for transit density, gesture-driven "
             "navigation layers, and high-frequency motion visualization."
@@ -124,7 +142,7 @@ LOCATION_PINS = [
         "region": "Kenya",
         "lat": -1.2921,
         "lon": 36.8219,
-        "color": (120, 255, 190),
+        "color": (0, 255, 140),
         "detail": (
             "East Africa relay for wildlife corridors, climate-linked motion "
             "visuals, and conservation data storytelling."
@@ -135,7 +153,7 @@ LOCATION_PINS = [
         "region": "Brazil",
         "lat": -23.5505,
         "lon": -46.6333,
-        "color": (110, 220, 255),
+        "color": (0, 180, 255),
         "detail": (
             "Expanded southern hemisphere cluster tracking mobility, cultural "
             "events, and layered urban pulse analysis."
@@ -146,7 +164,7 @@ LOCATION_PINS = [
         "region": "USA",
         "lat": 37.7749,
         "lon": -122.4194,
-        "color": (180, 170, 255),
+        "color": (200, 80, 255),
         "detail": (
             "Prototype launch zone for XR systems, satellite-linked interaction "
             "design, and coastal signal experiments."

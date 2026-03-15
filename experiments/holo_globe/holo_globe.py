@@ -85,7 +85,8 @@ from config import (
     TEXT_SECONDARY,
     THUMB_TIP_ID,
     PORTRAIT_ALPHA,
-    PORTRAIT_FADE_WIDTH,
+    PORTRAIT_PIP_SIZE,
+    PORTRAIT_PIP_MARGIN,
     PORTRAIT_TINT,
     WARNING_COLOR,
     WELCOME_FADE_SECONDS,
@@ -460,33 +461,29 @@ class HoloGlobe:
             self.display_pin = None
 
     def draw_presence_layer(self, canvas: np.ndarray, frame: np.ndarray, segmentation_mask: np.ndarray | None):
-        h, w = frame.shape[:2]
-        if segmentation_mask is None:
-            mask = np.ones((h, w), dtype=np.float32)
-        else:
-            mask = cv2.GaussianBlur(segmentation_mask.astype(np.float32), (0, 0), 11)
-        fade_width = max(1, int(w * PORTRAIT_FADE_WIDTH))
-        x_fade = np.linspace(1.0, 0.0, fade_width, dtype=np.float32)
-        x_fade = np.pad(x_fade, (0, max(0, w - fade_width)), constant_values=0.0)
-        x_fade = x_fade.reshape(1, w)
-        alpha = np.clip(mask * x_fade * PORTRAIT_ALPHA, 0.0, 1.0)
+        h, w = canvas.shape[:2]
+        ph, pw = PORTRAIT_PIP_SIZE[1], PORTRAIT_PIP_SIZE[0]
+        margin = PORTRAIT_PIP_MARGIN
+        
+        # Bottom right corner placement
+        y_start = h - ph - margin
+        x_start = w - pw - margin
+        y_end = y_start + ph
+        x_end = x_start + pw
 
-        tinted = frame.astype(np.float32)
+        pip_frame = cv2.resize(frame, (pw, ph))
+        
+        # Apply tint
+        tinted = pip_frame.astype(np.float32)
         tint = np.zeros_like(tinted)
-        tint[..., 0] = PORTRAIT_TINT[0]
-        tint[..., 1] = PORTRAIT_TINT[1]
-        tint[..., 2] = PORTRAIT_TINT[2]
-        subject = cv2.addWeighted(tinted, 0.88, tint, 0.28, 0)
+        tint[:] = PORTRAIT_TINT
+        pip_frame = cv2.addWeighted(tinted, 0.7, tint, 0.3, 0).astype(np.uint8)
 
-        alpha_3 = alpha[..., None]
-        canvas[:] = (canvas.astype(np.float32) * (1.0 - alpha_3) + subject * alpha_3).astype(np.uint8)
-
-        aura = cv2.GaussianBlur(alpha, (0, 0), 25) * 0.65
-        aura_overlay = np.zeros_like(canvas, dtype=np.float32)
-        aura_overlay[..., 0] = TEXT_ACCENT[0] * aura
-        aura_overlay[..., 1] = TEXT_ACCENT[1] * aura
-        aura_overlay[..., 2] = TEXT_ACCENT[2] * aura
-        canvas[:] = np.clip(canvas.astype(np.float32) + aura_overlay, 0, 255).astype(np.uint8)
+        # Draw PIP border
+        cv2.rectangle(canvas, (x_start - 2, y_start - 2), (x_end + 2, y_end + 2), HUD_COLOR, 2)
+        
+        # Place on canvas
+        canvas[y_start:y_end, x_start:x_end] = pip_frame
 
     def draw_background(self, canvas: np.ndarray, t: float):
         h, w = canvas.shape[:2]

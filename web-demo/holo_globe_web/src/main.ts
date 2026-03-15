@@ -8,13 +8,13 @@ import {
   Entity,
   LabelStyle,
   Math as CesiumMath,
-  OpenStreetMapImageryProvider,
   SceneMode,
   SceneTransforms,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
   Viewer,
   createWorldTerrainAsync,
+  UrlTemplateImageryProvider,
 } from "cesium";
 import { FilesetResolver, HandLandmarker } from "@mediapipe/tasks-vision";
 
@@ -36,7 +36,8 @@ type GestureState = {
   debugText: string;
 };
 
-const CAMERA_WASM_ROOT = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.32/wasm";
+const CAMERA_WASM_ROOT =
+  "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.32/wasm";
 const HAND_MODEL_PATH = "/models/hand_landmarker.task";
 const PLACE_PICK_RADIUS = 58;
 const PLACE_PICK_STICKY_RADIUS = 84;
@@ -61,7 +62,8 @@ const placeCard = requireElement<HTMLDivElement>("#place-card");
 const placeTitle = requireElement<HTMLHeadingElement>("#place-title");
 const placeRegion = requireElement<HTMLDivElement>("#place-region");
 const placeCoords = requireElement<HTMLDivElement>("#place-coords");
-const placeDescription = requireElement<HTMLParagraphElement>("#place-description");
+const placeDescription =
+  requireElement<HTMLParagraphElement>("#place-description");
 const placeSignal = requireElement<HTMLSpanElement>("#place-signal");
 const placeCoverage = requireElement<HTMLSpanElement>("#place-coverage");
 const placeStability = requireElement<HTMLSpanElement>("#place-stability");
@@ -89,8 +91,9 @@ const viewer = new Viewer(cesiumRoot, {
 
 viewer.imageryLayers.removeAll();
 viewer.imageryLayers.addImageryProvider(
-  new OpenStreetMapImageryProvider({
-    url: "https://tile.openstreetmap.org/",
+  new UrlTemplateImageryProvider({
+    url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+    subdomains: ["a", "b", "c", "d"],
   }),
 );
 (viewer.cesiumWidget.creditContainer as HTMLElement).style.display = "none";
@@ -99,11 +102,13 @@ viewer.scene.screenSpaceCameraController.enableZoom = false;
 viewer.scene.screenSpaceCameraController.enableTilt = false;
 viewer.scene.screenSpaceCameraController.enableLook = false;
 viewer.scene.screenSpaceCameraController.enableTranslate = false;
-viewer.scene.globe.enableLighting = true;
+viewer.scene.globe.enableLighting = false;
 if (viewer.scene.skyAtmosphere) {
-  viewer.scene.skyAtmosphere.show = true;
+  viewer.scene.skyAtmosphere.show = false;
 }
-viewer.scene.globe.showGroundAtmosphere = true;
+viewer.scene.globe.showGroundAtmosphere = false;
+viewer.scene.backgroundColor = Color.BLACK;
+viewer.scene.globe.baseColor = Color.BLACK;
 viewer.scene.requestRender();
 
 createWorldTerrainAsync()
@@ -116,7 +121,10 @@ createWorldTerrainAsync()
   });
 
 const placeEntityMap = new Map<string, Entity>();
-const placeMetaMap = new Map<string, PlaceRecord & ReturnType<typeof computeMetrics>>();
+const placeMetaMap = new Map<
+  string,
+  PlaceRecord & ReturnType<typeof computeMetrics>
+>();
 
 function computeMetrics(place: PlaceRecord, index: number) {
   return {
@@ -221,7 +229,8 @@ function focusPlace(entity: Entity, amount = 0.78, duration = 0) {
   if (!meta) {
     return;
   }
-  const altitude = FOCUS_ALTITUDE_FAR + (FOCUS_ALTITUDE_NEAR - FOCUS_ALTITUDE_FAR) * amount;
+  const altitude =
+    FOCUS_ALTITUDE_FAR + (FOCUS_ALTITUDE_NEAR - FOCUS_ALTITUDE_FAR) * amount;
   if (duration > 0) {
     viewer.camera.flyTo({
       destination: Cartesian3.fromDegrees(meta.lon, meta.lat, altitude),
@@ -240,8 +249,12 @@ function setActivePlace(next: Entity | null) {
 
   for (const entity of placeEntityMap.values()) {
     if (entity.point) {
-      entity.point.outlineWidth = new ConstantProperty(entity === activePlace ? 4 : 2);
-      entity.point.pixelSize = new ConstantProperty(entity === activePlace ? 20 : entity === hoveredPlace ? 18 : 14);
+      entity.point.outlineWidth = new ConstantProperty(
+        entity === activePlace ? 4 : 2,
+      );
+      entity.point.pixelSize = new ConstantProperty(
+        entity === activePlace ? 20 : entity === hoveredPlace ? 18 : 14,
+      );
     }
   }
 
@@ -259,7 +272,8 @@ function setActivePlace(next: Entity | null) {
   placeRegion.textContent = meta.region;
   const position = activePlace.position?.getValue(viewer.clock.currentTime);
   if (position) {
-    const cartographic = viewer.scene.globe.ellipsoid.cartesianToCartographic(position);
+    const cartographic =
+      viewer.scene.globe.ellipsoid.cartesianToCartographic(position);
     placeCoords.textContent = `LAT ${CesiumMath.toDegrees(cartographic.latitude).toFixed(2)}  LON ${CesiumMath.toDegrees(cartographic.longitude).toFixed(2)}`;
   }
   placeDescription.textContent = meta.description;
@@ -278,7 +292,10 @@ function updatePlaceCardPosition() {
     return;
   }
 
-  const screen = SceneTransforms.worldToWindowCoordinates(viewer.scene, position);
+  const screen = SceneTransforms.worldToWindowCoordinates(
+    viewer.scene,
+    position,
+  );
   if (!screen) {
     placeCard.classList.add("hidden");
     return;
@@ -287,8 +304,14 @@ function updatePlaceCardPosition() {
   placeCard.classList.remove("hidden");
   const cardWidth = placeCard.offsetWidth || 360;
   const cardHeight = placeCard.offsetHeight || 250;
-  const x = Math.min(window.innerWidth - cardWidth - 24, Math.max(24, screen.x + 36));
-  const y = Math.min(window.innerHeight - cardHeight - 90, Math.max(100, screen.y - cardHeight * 0.5));
+  const x = Math.min(
+    window.innerWidth - cardWidth - 24,
+    Math.max(24, screen.x + 36),
+  );
+  const y = Math.min(
+    window.innerHeight - cardHeight - 90,
+    Math.max(100, screen.y - cardHeight * 0.5),
+  );
   placeCard.style.left = `${x}px`;
   placeCard.style.top = `${y}px`;
 }
@@ -303,12 +326,18 @@ function pickPlaceAtScreen(x: number, y: number): Entity | null {
       continue;
     }
 
-    const screen = SceneTransforms.worldToWindowCoordinates(viewer.scene, position);
+    const screen = SceneTransforms.worldToWindowCoordinates(
+      viewer.scene,
+      position,
+    );
     if (!screen) {
       continue;
     }
 
-    const radius = entity === hoveredPlace || entity === activePlace ? PLACE_PICK_STICKY_RADIUS : PLACE_PICK_RADIUS;
+    const radius =
+      entity === hoveredPlace || entity === activePlace
+        ? PLACE_PICK_STICKY_RADIUS
+        : PLACE_PICK_RADIUS;
     const distance = Math.hypot(screen.x - x, screen.y - y);
     if (distance <= radius && distance < bestDistance) {
       bestDistance = distance;
@@ -349,7 +378,8 @@ function handleGestureInteraction(state: GestureState) {
     state.selectStrength > 0.72 &&
     now - hoveredPlaceSince >= SELECT_HOLD_MS;
 
-  const selectEngaged = hovered !== null && !state.isOrbiting && state.selectStrength > 0.58;
+  const selectEngaged =
+    hovered !== null && !state.isOrbiting && state.selectStrength > 0.58;
   if (selectEngaged && hovered) {
     focusGestureActive = true;
     if (activePlace !== hovered) {
@@ -357,7 +387,11 @@ function handleGestureInteraction(state: GestureState) {
       placePinned = false;
     }
     focusPlace(hovered, smoothstep(0.58, 0.98, state.selectStrength));
-  } else if (focusGestureActive && !placePinned && state.selectStrength < 0.24) {
+  } else if (
+    focusGestureActive &&
+    !placePinned &&
+    state.selectStrength < 0.24
+  ) {
     focusGestureActive = false;
     setActivePlace(null);
     flyToOverview();
@@ -365,9 +399,17 @@ function handleGestureInteraction(state: GestureState) {
     focusGestureActive = false;
   }
 
-  if ((state.selectTrigger || selectHoldReady) && hovered && now - lastGestureTime > 260) {
+  if (
+    (state.selectTrigger || selectHoldReady) &&
+    hovered &&
+    now - lastGestureTime > 260
+  ) {
     setActivePlace(hovered);
-    focusPlace(hovered, smoothstep(0.58, 0.98, Math.max(state.selectStrength, 0.72)), 0.42);
+    focusPlace(
+      hovered,
+      smoothstep(0.58, 0.98, Math.max(state.selectStrength, 0.72)),
+      0.42,
+    );
     lastGestureTime = now;
     hoveredPlaceSince = now;
   }
@@ -380,8 +422,14 @@ function handleGestureInteraction(state: GestureState) {
     lockHoldSince = 0;
   }
 
-  const lockHoldReady = lockHoldSince > 0 && now - lockHoldSince >= LOCK_HOLD_MS;
-  if (!state.isOrbiting && (state.lockTrigger || lockHoldReady) && activePlace && now - lastGestureTime > 260) {
+  const lockHoldReady =
+    lockHoldSince > 0 && now - lockHoldSince >= LOCK_HOLD_MS;
+  if (
+    !state.isOrbiting &&
+    (state.lockTrigger || lockHoldReady) &&
+    activePlace &&
+    now - lastGestureTime > 260
+  ) {
     placePinned = !placePinned;
     if (!placePinned && state.selectStrength < 0.4) {
       setActivePlace(null);
@@ -411,7 +459,10 @@ function handleGestureInteraction(state: GestureState) {
   viewer.scene.requestRender();
 }
 
-function handDistance(a: { x: number; y: number }, b: { x: number; y: number }) {
+function handDistance(
+  a: { x: number; y: number },
+  b: { x: number; y: number },
+) {
   const dx = a.x - b.x;
   const dy = a.y - b.y;
   return Math.hypot(dx, dy);
@@ -441,7 +492,9 @@ function smoothstep(edge0: number, edge1: number, x: number) {
   return t * t * (3 - 2 * t);
 }
 
-function landmarksToGesture(result: Awaited<ReturnType<HandLandmarker["detectForVideo"]>>): GestureState | null {
+function landmarksToGesture(
+  result: Awaited<ReturnType<HandLandmarker["detectForVideo"]>>,
+): GestureState | null {
   const landmarks = result.landmarks?.[0];
   if (!landmarks) {
     selectLatch = false;
@@ -466,7 +519,13 @@ function landmarksToGesture(result: Awaited<ReturnType<HandLandmarker["detectFor
   const wrist = landmarks[0];
   const middleMcp = landmarks[9];
   const handSize = handDistance(wrist, middleMcp) + 1e-4;
-  const palm = averagePoint([landmarks[0], landmarks[5], landmarks[9], landmarks[13], landmarks[17]]);
+  const palm = averagePoint([
+    landmarks[0],
+    landmarks[5],
+    landmarks[9],
+    landmarks[13],
+    landmarks[17],
+  ]);
 
   const pinchCenterX = (thumb.x + index.x) * 0.5;
   const pinchCenterY = (thumb.y + index.y) * 0.5;
@@ -480,23 +539,37 @@ function landmarksToGesture(result: Awaited<ReturnType<HandLandmarker["detectFor
   const selectRatio = handDistance(thumb, index) / handSize;
   const lockRatio = handDistance(thumb, middle) / handSize;
   const selectStrength = 1 - clamp((selectRatio - 0.18) / (0.72 - 0.18), 0, 1);
-  const lockStrength = 1 - clamp((lockRatio - 0.20) / (0.74 - 0.20), 0, 1);
+  const lockStrength = 1 - clamp((lockRatio - 0.2) / (0.74 - 0.2), 0, 1);
 
-  const opennessSource = [thumb, index, middle, ring, pinky]
-    .map((point) => handDistance(point, palm))
-    .reduce((sum, value) => sum + value, 0) / 5;
+  const opennessSource =
+    [thumb, index, middle, ring, pinky]
+      .map((point) => handDistance(point, palm))
+      .reduce((sum, value) => sum + value, 0) / 5;
   const opennessRatio = opennessSource / handSize;
   const trioPinchRatio =
-    (handDistance(thumb, index) + handDistance(thumb, middle) + handDistance(index, middle)) /
+    (handDistance(thumb, index) +
+      handDistance(thumb, middle) +
+      handDistance(index, middle)) /
     (3 * handSize);
-  const orbitStrength = 1 - clamp((trioPinchRatio - 0.16) / (0.58 - 0.16), 0, 1);
+  const orbitStrength =
+    1 - clamp((trioPinchRatio - 0.16) / (0.58 - 0.16), 0, 1);
   const resetStrength = 1 - smoothstep(0.82, 1.36, opennessRatio);
   const isOrbiting = orbitStrength > 0.7;
 
   const rotateDominant = orbitStrength > 0.7;
-  const selectTrigger = selectStrength > 0.72 && !rotateDominant && !selectLatch;
-  const lockTrigger = lockStrength > 0.88 && selectStrength < 0.45 && !rotateDominant && !lockLatch;
-  const resetTrigger = resetStrength > 0.92 && selectStrength < 0.24 && lockStrength < 0.24 && !rotateDominant && !resetLatch;
+  const selectTrigger =
+    selectStrength > 0.72 && !rotateDominant && !selectLatch;
+  const lockTrigger =
+    lockStrength > 0.88 &&
+    selectStrength < 0.45 &&
+    !rotateDominant &&
+    !lockLatch;
+  const resetTrigger =
+    resetStrength > 0.92 &&
+    selectStrength < 0.24 &&
+    lockStrength < 0.24 &&
+    !rotateDominant &&
+    !resetLatch;
   selectLatch = selectStrength > 0.28;
   lockLatch = lockStrength > 0.42;
   resetLatch = resetStrength > 0.35;
@@ -551,8 +624,14 @@ async function initCamera() {
 }
 
 async function animate() {
-  if (handLandmarker && cameraVideo.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
-    const result = handLandmarker.detectForVideo(cameraVideo, performance.now());
+  if (
+    handLandmarker &&
+    cameraVideo.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA
+  ) {
+    const result = handLandmarker.detectForVideo(
+      cameraVideo,
+      performance.now(),
+    );
     const gesture = landmarksToGesture(result);
     if (gesture) {
       Object.assign(gestureState, gesture);
@@ -587,6 +666,7 @@ async function boot() {
 
 boot().catch((error) => {
   console.error(error);
-  gestureText.textContent = "Initialization failed. Check camera permissions and dependency install.";
+  gestureText.textContent =
+    "Initialization failed. Check camera permissions and dependency install.";
   trackingPill.textContent = "Boot failed";
 });
